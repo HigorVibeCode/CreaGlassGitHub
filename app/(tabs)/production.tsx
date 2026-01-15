@@ -1,0 +1,432 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Modal, TouchableWithoutFeedback } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../../src/hooks/use-i18n';
+import { ScreenWrapper } from '../../src/components/shared/ScreenWrapper';
+import { DropdownOption } from '../../src/components/shared/Dropdown';
+import { PermissionGuard } from '../../src/components/shared/PermissionGuard';
+import { repos } from '../../src/services/container';
+import { Production, ProductionStatus } from '../../src/types';
+import { theme } from '../../src/theme';
+import { useThemeColors } from '../../src/hooks/use-theme-colors';
+import { useAuth } from '../../src/store/auth-store';
+
+export default function ProductionScreen() {
+  const { t } = useI18n();
+  const router = useRouter();
+  const colors = useThemeColors();
+  const { user } = useAuth();
+  const [productions, setProductions] = useState<Production[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<ProductionStatus | 'all'>('all');
+  const [isLoading, setIsLoading] = useState(false);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+
+  const loadProductions = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const status = selectedStatus === 'all' ? undefined : selectedStatus;
+      const allProductions = await repos.productionRepo.getAllProductions(status);
+      setProductions(allProductions);
+    } catch (error) {
+      console.error('Error loading productions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedStatus]);
+
+  useEffect(() => {
+    loadProductions();
+  }, [loadProductions]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProductions();
+    }, [loadProductions])
+  );
+
+  const handleCreateProduction = () => {
+    router.push('/production-create');
+  };
+
+  const statusOptions: DropdownOption[] = [
+    { label: t('production.status.all'), value: 'all' },
+    { label: t('production.status.not_authorized'), value: 'not_authorized' },
+    { label: t('production.status.authorized'), value: 'authorized' },
+    { label: t('production.status.cutting'), value: 'cutting' },
+    { label: t('production.status.polishing'), value: 'polishing' },
+    { label: t('production.status.waiting_for_tempering'), value: 'waiting_for_tempering' },
+    { label: t('production.status.on_oven'), value: 'on_oven' },
+    { label: t('production.status.tempered'), value: 'tempered' },
+    { label: t('production.status.on_cabin'), value: 'on_cabin' },
+    { label: t('production.status.laminating'), value: 'laminating' },
+    { label: t('production.status.laminated'), value: 'laminated' },
+    { label: t('production.status.waiting_for_packing'), value: 'waiting_for_packing' },
+    { label: t('production.status.packed'), value: 'packed' },
+    { label: t('production.status.ready_for_dispatch'), value: 'ready_for_dispatch' },
+    { label: t('production.status.delivered'), value: 'delivered' },
+    { label: t('production.status.completed'), value: 'completed' },
+  ];
+
+  const getStatusColor = (status: ProductionStatus): string => {
+    switch (status) {
+      case 'not_authorized':
+        return colors.error;
+      case 'authorized':
+        return colors.success; // Green (most important phase)
+      case 'cutting':
+        return colors.info;
+      case 'polishing':
+        return '#06b6d4'; // Cyan
+      case 'waiting_for_tempering':
+        return colors.warning;
+      case 'on_oven':
+        return '#f59e0b'; // Amber
+      case 'tempered':
+        return '#8b5cf6'; // Purple
+      case 'on_cabin':
+        return colors.info;
+      case 'laminating':
+        return '#06b6d4'; // Cyan
+      case 'laminated':
+        return '#3b82f6'; // Blue
+      case 'waiting_for_packing':
+        return colors.warning;
+      case 'packed':
+        return '#06b6d4'; // Cyan
+      case 'ready_for_dispatch':
+        return '#f59e0b'; // Amber
+      case 'delivered':
+        return colors.success;
+      case 'completed':
+        return colors.success;
+      default:
+        return colors.textSecondary;
+    }
+  };
+
+  const getStatusLabel = (status: ProductionStatus): string => {
+    switch (status) {
+      case 'not_authorized':
+        return t('production.status.not_authorized');
+      case 'authorized':
+        return t('production.status.authorized');
+      case 'cutting':
+        return t('production.status.cutting');
+      case 'polishing':
+        return t('production.status.polishing');
+      case 'waiting_for_tempering':
+        return t('production.status.waiting_for_tempering');
+      case 'on_oven':
+        return t('production.status.on_oven');
+      case 'tempered':
+        return t('production.status.tempered');
+      case 'on_cabin':
+        return t('production.status.on_cabin');
+      case 'laminating':
+        return t('production.status.laminating');
+      case 'laminated':
+        return t('production.status.laminated');
+      case 'waiting_for_packing':
+        return t('production.status.waiting_for_packing');
+      case 'packed':
+        return t('production.status.packed');
+      case 'ready_for_dispatch':
+        return t('production.status.ready_for_dispatch');
+      case 'delivered':
+        return t('production.status.delivered');
+      case 'completed':
+        return t('production.status.completed');
+      default:
+        return status;
+    }
+  };
+
+  const getOrderTypeLabel = (orderType: string): string => {
+    return orderType || '';
+  };
+
+  const handleFilterSelect = (value: string) => {
+    setSelectedStatus(value as ProductionStatus | 'all');
+    setFilterModalVisible(false);
+  };
+
+  return (
+    <ScreenWrapper>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
+          <View style={styles.topBar}>
+            <TouchableOpacity
+              style={[styles.filterButton, { backgroundColor: colors.backgroundSecondary }]}
+              onPress={() => setFilterModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="filter" size={20} color={colors.text} />
+            </TouchableOpacity>
+            
+            <PermissionGuard permission="production.create">
+              <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: colors.primary }]}
+                onPress={handleCreateProduction}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="add" size={20} color={colors.textInverse} />
+              </TouchableOpacity>
+            </PermissionGuard>
+          </View>
+
+          <Modal
+            visible={filterModalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setFilterModalVisible(false)}
+          >
+            <TouchableWithoutFeedback onPress={() => setFilterModalVisible(false)}>
+              <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+                <TouchableWithoutFeedback>
+                  <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+                    <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                      <Text style={[styles.modalTitle, { color: colors.text }]}>
+                        {t('production.filterByStatus')}
+                      </Text>
+                      <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                        <Ionicons name="close" size={24} color={colors.text} />
+                      </TouchableOpacity>
+                    </View>
+                    <ScrollView style={styles.optionsList} nestedScrollEnabled>
+                      {statusOptions.map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            styles.optionItem,
+                            { borderBottomColor: colors.borderLight },
+                            selectedStatus === option.value && { backgroundColor: colors.primary + '10' },
+                          ]}
+                          onPress={() => handleFilterSelect(option.value)}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.optionText,
+                              { color: colors.text },
+                              selectedStatus === option.value && { 
+                                fontWeight: theme.typography.fontWeight.semibold, 
+                                color: colors.primary 
+                              },
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                          {selectedStatus === option.value && (
+                            <Ionicons name="checkmark" size={20} color={colors.primary} />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+
+          {productions.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                {t('production.noOrders')}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.ordersList}>
+              {productions.map((production) => (
+                <TouchableOpacity
+                  key={production.id}
+                  style={[styles.orderCard, { backgroundColor: colors.cardBackground }]}
+                  activeOpacity={0.7}
+                  onPress={() => router.push({
+                    pathname: '/production-detail',
+                    params: { productionId: production.id },
+                  })}
+                >
+                  <View style={styles.cardContent}>
+                    <View style={styles.orderDetails}>
+                      <View style={styles.clientRow}>
+                        <Text style={[styles.clientName, { color: colors.text }]}>{production.clientName}</Text>
+                        <Text style={[styles.separator, { color: colors.textSecondary }]}>•</Text>
+                        <Text style={[styles.orderNumber, { color: colors.textSecondary }]}>{production.orderNumber}</Text>
+                      </View>
+                      <Text style={[styles.orderType, { color: colors.textSecondary }]}>
+                        {getOrderTypeLabel(production.orderType)}
+                      </Text>
+                    </View>
+                    <View style={styles.statusColumn}>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: getStatusColor(production.status) + '20' },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusText,
+                            { color: getStatusColor(production.status) },
+                          ]}
+                        >
+                          {getStatusLabel(production.status)}
+                        </Text>
+                      </View>
+                      <Text style={[styles.dueDate, { color: colors.textSecondary }]}>
+                        {new Date(production.dueDate).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </ScreenWrapper>
+  );
+}
+
+const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    padding: theme.spacing.md,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+  },
+  filterButton: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.borderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.lg,
+  },
+  modalContent: {
+    borderRadius: theme.borderRadius.lg,
+    width: '100%',
+    maxWidth: 400,
+    ...theme.shadows.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: theme.spacing.lg,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
+  },
+  optionsList: {
+    maxHeight: 400,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderBottomWidth: 1,
+  },
+  optionText: {
+    fontSize: theme.typography.fontSize.md,
+    flex: 1,
+  },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.borderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.sm,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 200,
+    padding: theme.spacing.xl,
+  },
+  emptyText: {
+    fontSize: theme.typography.fontSize.md,
+    textAlign: 'center',
+  },
+  ordersList: {
+    gap: theme.spacing.md,
+  },
+  orderCard: {
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    ...theme.shadows.sm,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  orderDetails: {
+    flex: 1,
+    marginRight: theme.spacing.md,
+  },
+  clientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xs,
+    flexWrap: 'wrap',
+  },
+  clientName: {
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.semibold,
+    marginRight: theme.spacing.xs,
+  },
+  separator: {
+    fontSize: theme.typography.fontSize.lg,
+    marginHorizontal: theme.spacing.xs,
+  },
+  orderNumber: {
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  orderType: {
+    fontSize: theme.typography.fontSize.sm,
+    marginTop: theme.spacing.xs,
+  },
+  statusColumn: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    minWidth: 100,
+  },
+  statusBadge: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+    marginBottom: theme.spacing.xs,
+    alignSelf: 'flex-end',
+  },
+  statusText: {
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
+  dueDate: {
+    fontSize: theme.typography.fontSize.xs,
+    textAlign: 'right',
+  },
+});

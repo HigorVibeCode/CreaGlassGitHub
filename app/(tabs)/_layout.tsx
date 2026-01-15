@@ -1,35 +1,118 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-
+import { View, StyleSheet, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../../src/hooks/use-i18n';
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { theme } from '../../src/theme';
+import { useThemeColors } from '../../src/hooks/use-theme-colors';
+import { TopBar } from '../../src/components/shared/TopBar';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { t } = useI18n();
+  const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <TopBar />
+      <View style={styles.tabsContainer}>
+        <Tabs
+          screenOptions={{
+            tabBarActiveTintColor: colors.primary,
+            tabBarInactiveTintColor: colors.textTertiary,
+            headerShown: false,
+            tabBarButton: HapticTab,
+            tabBarStyle: {
+              backgroundColor: colors.background,
+              borderTopColor: colors.border,
+              borderTopWidth: 1,
+              height: 65 + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4),
+              paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4),
+              paddingTop: 8,
+            },
+            tabBarLabelStyle: {
+              fontSize: 12,
+              fontWeight: theme.typography.fontWeight.medium,
+            },
+            animation: 'shift',
+          }}>
+      <Tabs.Screen
+        name="production"
+        options={{
+          title: t('navigation.production'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'construct' : 'construct-outline'} 
+              size={24} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="documents"
+        options={{
+          title: t('navigation.documents'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'book' : 'book-outline'} 
+              size={24} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="events"
+        options={{
+          title: t('navigation.events'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'calendar' : 'calendar-outline'} 
+              size={24} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="inventory"
+        options={{
+          title: t('navigation.inventory'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'cube' : 'cube-outline'} 
+              size={24} 
+              color={color} 
+            />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          href: null,
         }}
       />
-    </Tabs>
+        </Tabs>
+      </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  tabsContainer: {
+    flex: 1,
+  },
+});

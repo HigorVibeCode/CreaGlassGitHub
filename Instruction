@@ -1,0 +1,77 @@
+1. O aplicativo deve funcionar em Android, iOS e Web a partir de uma base de codigo React Native, Java Script e TypeScript.
+2. O idioma oficial do aplicativo é o inglês.
+3. O aplicativo deve possuir tradução completa para alemão, francês, italiano, português e espanhol.
+4. Nenhum texto pode ser hardcoded; todas as strings devem usar o sistema de internacionalização.
+5. Nenhuma funcionalidade pode ser considerada concluída sem tradução em todos os idiomas suportados.
+6. O backend, autenticação, banco de dados, storage e regras de segurança devem ser preparados para hospedagem no Supabase.
+7. Nenhuma regra de permissão pode existir apenas no frontend; todas devem ser validadas no backend.
+8. O aplicativo deve ser versionado e mantido em um repositório oficial no GitHub.
+9. A autenticação será feita exclusivamente por username e senha.
+10. Todos os usuários devem ser criados manualmente pelo usuário Master **Pia**.
+11. Não existe cadastro público de usuários.
+12. Não existe recuperação automática de senha.
+13. Apenas o usuário Master **Pia** pode criar novos usuários.
+14. Apenas o usuário Master **Pia** pode alterar permissões de usuários.
+15. Apenas o usuário Master **Pia** pode ativar ou desativar usuários.
+16. O usuário Master possui username **Pia** e senha **Happiness**.
+17. Os únicos tipos de usuários permitidos são Master, Manager, Viewer e Onboarding.
+18. Tipos de usuários não concedem permissões automaticamente.
+19. Todas as permissões devem ser configuradas individualmente pelo usuário Master **Pia**.
+20. A barra de navegação principal deve conter exatamente quatro páginas.
+21. A ordem fixa da barra de navegação é: Produção, Documentos, Eventos e Inventário.
+22. A ordem da barra de navegação não pode ser alterada.
+23. O menu secundário deve ser acessado exclusivamente pelo ícone de três pontos no canto superior direito.
+24. O menu de três pontos deve conter exatamente quatro páginas.
+25. As páginas do menu de três pontos são: Perfil, Configurações, Controles de Acesso e Blood Priority.
+26. Nenhuma outra página pode ser adicionada ao menu de três pontos sem revisão das regras.
+27. O aplicativo deve possuir uma central de notificações interna.
+28. As notificações devem ser exclusivamente automáticas, disparadas por ações do sistema.
+29. O usuário não pode ativar, desativar ou configurar notificações.
+30. O ícone da central de notificações deve ficar no canto superior direito.
+31. O ícone da central de notificações deve ficar à esquerda do ícone de três pontos.
+32. O Blood Priority deve ser acessado por um ícone circular no canto superior direito.
+33. O ícone do Blood Priority deve ficar à esquerda do ícone da central de notificações.
+34. O Blood Priority é uma página exclusivamente informativa.
+35. O ícone do Blood Priority deve piscar enquanto houver mensagens não lidas.
+36. Ao abrir o Blood Priority, deve iniciar um timer obrigatório de 10 segundos.
+37. O usuário só pode confirmar leitura do Blood Priority após o timer de 10 segundos.
+38. As mensagens do Blood Priority só podem ser criadas por usuários com permissão específica.
+39. A permissão para criar Blood Priority deve ser configurada pelo usuário Master **Pia**.
+40. O botão para criar Blood Priority deve existir dentro da página Blood Priority no menu de três pontos.
+41. A página Documentos deve permitir upload de arquivos.
+42. A página Documentos deve permitir visualização de arquivos.
+43. A página Documentos deve permitir download apenas para usuários com permissão.
+44. O botão de download só deve ser renderizado se o usuário tiver permissão explícita.
+45. Os tipos de arquivos permitidos em Documentos são imagens e PDFs.
+46. O Inventário deve permitir a criação de grupos de produtos.
+47. Cada grupo de produtos deve conter seus respectivos itens.
+48. O Inventário deve suportar unidades de medida.
+49. O Inventário deve manter histórico completo de alterações.
+50. O Inventário deve gerar alertas automáticos de estoque baixo.
+51. Alertas de estoque baixo devem gerar notificações na central de notificações.
+52. Dados criados em uma página podem ser reutilizados em outras páginas.
+53. Itens do Inventário devem poder ser usados em listas suspensas de outras páginas quando necessário.
+54. Todas as integrações entre páginas devem usar uma fonte única da verdade no banco de dados.
+55. O controle de acesso deve funcionar com base na visibilidade de botões e ações.
+56. Se o usuário não tiver permissão, o botão não deve ser exibido.
+57. Se o usuário não tiver permissão, a ação não deve ser executável no backend.
+58. Sempre que um novo botão de ação for criado, uma nova permissão deve ser criada.
+59. Toda nova permissão deve aparecer na página Controles de Acesso.
+60. Apenas o usuário Master **Pia** pode criar, alterar ou remover permissões.
+61. Nomes de variáveis, funções e arquivos devem estar sempre em inglês.
+62. O padrão de nomenclatura deve ser consistente em todo o projeto.
+63. Nenhuma funcionalidade pode ser implementada sem validação de permissões.
+64. Nenhuma funcionalidade pode ser implementada sem suporte à internacionalização.
+65. Nenhuma funcionalidade pode ser implementada sem atualização dos controles de acesso.
+66. O código deve ser modular, legível e de fácil manutenção.
+67. Funcionalidades que violem qualquer uma dessas regras não devem ser aprovadas.
+68. O aplicativo deve ser capaz de **ler QR Codes** utilizando a câmera do dispositivo.
+69. O aplicativo deve ser capaz de **ler tags NFC** em dispositivos compatíveis.
+70. A leitura de QR Code deve funcionar em Android, iOS e Web (quando suportado pelo navegador).
+71. A leitura de NFC deve funcionar em Android e iOS, respeitando as limitações de cada plataforma.
+72. Toda leitura de QR Code ou NFC deve acionar apenas funcionalidades autorizadas pelas permissões do usuário.
+73. A leitura de QR Code ou NFC não pode executar nenhuma ação sem validação no backend.
+74. Os dados lidos via QR Code ou NFC devem ser tratados como entrada sensível e validados antes do uso.
+75. A interface de leitura de QR Code e NFC deve respeitar o sistema de internacionalização do aplicativo.
+76. Qualquer nova funcionalidade associada a QR Code ou NFC deve gerar permissões específicas quando envolver ações críticas.
+77. O layout e cores do App é inspirado no App Monday.

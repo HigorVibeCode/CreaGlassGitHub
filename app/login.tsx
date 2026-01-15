@@ -1,0 +1,122 @@
+import React, { useState } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Image as ExpoImage } from 'expo-image';
+import { useI18n } from '../src/hooks/use-i18n';
+import { useAuth } from '../src/store/auth-store';
+import { repos } from '../src/services/container';
+import { Button } from '../src/components/shared/Button';
+import { Input } from '../src/components/shared/Input';
+import { theme } from '../src/theme';
+import { useThemeColors } from '../src/hooks/use-theme-colors';
+
+export default function LoginScreen() {
+  const { t } = useI18n();
+  const router = useRouter();
+  const { setSession, setLoading, isLoading } = useAuth();
+  const colors = useThemeColors();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    if (!username.trim() || !password.trim()) {
+      setError(t('auth.invalidCredentials'));
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const session = await repos.authRepo.login(username.trim(), password);
+      // Set session - AuthGuard will handle redirect
+      setSession(session);
+      // Don't redirect here, let AuthGuard handle it to avoid loops
+      // Wait a bit for session to be set and AuthGuard to react
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(t('auth.invalidCredentials'));
+      Alert.alert(t('common.error'), error.message || t('auth.loginError'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={styles.content}>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <ExpoImage
+            source={require('../assets/images/icon.png')}
+            style={styles.logo}
+            contentFit="contain"
+            transition={200}
+            cachePolicy="memory-disk"
+            priority="high"
+          />
+        </View>
+
+        <View style={styles.form}>
+          <Input
+            label={t('auth.username')}
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Input
+            label={t('auth.password')}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {error ? <View style={styles.errorContainer} /> : null}
+          <Button
+            title={t('auth.loginButton')}
+            onPress={handleLogin}
+            loading={isLoading}
+            disabled={!username.trim() || !password.trim()}
+          />
+        </View>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.xl,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.xxl,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  logo: {
+    width: 320,
+    height: 160,
+    // contentFit="contain" mantém as proporções originais sem distorção
+  },
+  form: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
+  errorContainer: {
+    marginBottom: theme.spacing.sm,
+  },
+});

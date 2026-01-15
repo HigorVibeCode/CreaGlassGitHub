@@ -1,50 +1,126 @@
-# Welcome to your Expo app 👋
+# Crea Glass 2
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Cross-platform application built with React Native, TypeScript, and Expo.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Multi-platform**: Android, iOS, and Web
+- **Internationalization**: Full support for 6 languages (English, German, French, Italian, Portuguese, Spanish)
+- **Permission-based access control**: Fine-grained permissions system
+- **Supabase-ready architecture**: Prepared for backend integration
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. Start the app
+- **Framework**: Expo (React Native)
+- **Language**: TypeScript
+- **State Management**: Zustand (auth), React Query (server state)
+- **Navigation**: Expo Router (file-based routing)
+- **i18n**: i18next + react-i18next
+- **Storage**: AsyncStorage (mock data)
 
-   ```bash
-   npx expo start
-   ```
+## Project Structure
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+Crea Glass/
+├── app/                    # Expo Router pages
+│   ├── (tabs)/            # Main tab navigation (Production, Documents, Events, Inventory)
+│   ├── login.tsx          # Login screen
+│   └── ...
+├── src/
+│   ├── components/        # Reusable components
+│   ├── features/          # Feature modules (to be implemented)
+│   ├── hooks/             # Custom React hooks
+│   ├── i18n/              # Internationalization (6 languages)
+│   ├── providers/         # Context providers
+│   ├── repositories/      # Data layer (mock implementations)
+│   ├── services/          # Services and API clients
+│   ├── store/             # State management (Zustand)
+│   ├── theme/             # Theme configuration (Monday-inspired)
+│   ├── types/             # TypeScript types
+│   └── utils/             # Utility functions
+└── ...
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting Started
 
-## Learn more
+### Prerequisites
 
-To learn more about developing your project with Expo, look at the following resources:
+- Node.js (v18+)
+- npm or yarn
+- Expo CLI (`npm install -g expo-cli`)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Installation
 
-## Join the community
+1. Install dependencies:
+```bash
+npm install
+```
 
-Join our community of developers creating universal apps.
+2. Start the development server:
+```bash
+npm start
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+3. Run on specific platform:
+```bash
+npm run ios      # iOS
+npm run android  # Android
+npm run web      # Web
+```
+
+## Authentication
+
+### Master User (Default)
+
+- **Username**: `Pia`
+- **Password**: `Happiness`
+
+⚠️ **Important**: These credentials are for development/testing only. In production, credentials should be managed securely through Supabase Auth.
+
+## Development Status
+
+### ✅ LAYER 1 - Frontend Foundation (Current)
+
+- [x] Project structure and setup
+- [x] Internationalization (i18n) - 6 languages
+- [x] Theme system (Monday-inspired)
+- [x] Permission system
+- [x] Authentication store (Zustand)
+- [x] Mock repositories (9 repositories)
+- [x] Navigation structure (4 tabs + menu)
+- [x] Login screen
+- [x] Basic pages (Production, Documents, Events, Inventory)
+- [x] Menu pages (Profile, Settings, Access Controls, Blood Priority)
+- [x] Notification center
+- [ ] QR Code adapters
+- [ ] NFC adapters
+- [ ] Full page implementations
+
+### ⏳ LAYER 2 - Backend Integration (Planned)
+
+- [ ] Supabase setup
+- [ ] Database schema and migrations
+- [ ] Row Level Security (RLS) policies
+- [ ] Supabase repositories (replace mocks)
+- [ ] Storage configuration
+- [ ] Edge Functions (if needed)
+
+## Key Rules
+
+1. **No hardcoded strings**: All user-facing text must use i18n
+2. **Permission-based UI**: Buttons/actions are hidden if user lacks permission
+3. **Backend validation**: All permissions validated server-side (when backend is integrated)
+4. **Master user only**: Only Master user can manage users and permissions
+5. **Fixed navigation**: 4 tabs in fixed order (Production, Documents, Events, Inventory)
+
+## Contributing
+
+1. Follow TypeScript best practices
+2. Use English for all code (variables, functions, files)
+3. Ensure all strings are internationalized
+4. Add permissions for new actions
+5. Update Access Controls page for new permissions
+
+## License
+
+[Your License Here]
