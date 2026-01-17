@@ -44,11 +44,14 @@
     "title": "Benachrichtigungen",
     "noNotifications": "Keine Benachrichtigungen",
     "markAsRead": "Als gelesen markieren",
+    "markAsReadError": "Fehler beim Markieren der Benachrichtigung als gelesen",
     "unread": "Ungelesen",
     "lowStockMessage": "Niedriger Bestand",
     "productionAuthorized": "Produktionsauftrag autorisiert",
     "clearAll": "Alle Löschen",
-    "clearAllConfirm": "Sind Sie sicher, dass Sie alle Benachrichtigungen löschen möchten?"
+    "clearAllConfirm": "Sind Sie sicher, dass Sie alle Benachrichtigungen löschen möchten?",
+    "clearError": "Fehler beim Löschen der Benachrichtigungen",
+    "loadError": "Fehler beim Laden der Benachrichtigungen"
   },
   "bloodPriority": {
     "title": "Blood Priority",

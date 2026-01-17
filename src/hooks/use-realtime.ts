@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { triggerNotificationAlert } from '../utils/notification-alert';
 import { useAuth } from '../store/auth-store';
+import { Notification } from '../types';
 
 /**
  * Hook para ativar subscriptions Realtime do Supabase
@@ -70,7 +71,7 @@ export const useRealtime = () => {
         )
         .subscribe();
 
-      // Subscription para notificações
+      // Subscription para notificações (apenas novas notificações)
       const notificationsChannel = supabase
         .channel('notifications-changes', {
           config: { private: true },
@@ -78,20 +79,40 @@ export const useRealtime = () => {
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'INSERT', // Only listen to INSERT events (new notifications)
             schema: 'public',
             table: 'notifications',
           },
           (payload) => {
-            console.log('Notification change:', payload);
+            console.log('[REALTIME] New notification event received:', {
+              eventType: payload.eventType,
+              hasNew: !!payload.new,
+              hasUser: !!user,
+              userId: user?.id,
+              notificationTargetUserId: payload.new?.target_user_id,
+            });
             
-            // Se for uma nova notificação (INSERT) e for para o usuário atual, tocar som
-            if (payload.eventType === 'INSERT' && payload.new && user) {
+            // Se for uma nova notificação e for para o usuário atual
+            if (payload.eventType === 'INSERT' && payload.new) {
               const notification = payload.new;
+              
+              // Verificar se temos usuário logado
+              if (!user) {
+                console.warn('[REALTIME] No user logged in, skipping notification');
+                return;
+              }
+              
               // Verificar se a notificação é para o usuário atual ou é global
               const isForCurrentUser = !notification.target_user_id || notification.target_user_id === user.id;
               
+              console.log('[REALTIME] Notification check:', {
+                isForCurrentUser,
+                targetUserId: notification.target_user_id,
+                currentUserId: user.id,
+              });
+              
               if (isForCurrentUser) {
+                console.log('[REALTIME] Processing notification for current user');
                 // Preparar mensagem para o alert
                 let alertMessage: string | undefined;
                 if (notification.type === 'inventory.lowStock' && notification.payload_json) {
@@ -105,24 +126,129 @@ export const useRealtime = () => {
                 triggerNotificationAlert(notification.type, alertMessage).catch(err => {
                   console.warn('Failed to trigger notification alert:', err);
                 });
+
+                // Mapear a notificação do formato do banco para o formato da aplicação
+                // Usar a mesma lógica do repositório para garantir consistência
+                const mappedNotification: Notification = {
+                  id: notification.id,
+                  type: notification.type,
+                  payloadJson: typeof notification.payload_json === 'string' 
+                    ? JSON.parse(notification.payload_json) 
+                    : notification.payload_json || {},
+                  createdAt: notification.created_at,
+                  createdBySystem: notification.created_by_system ?? false,
+                  targetUserId: notification.target_user_id || undefined,
+                  readAt: undefined, // Nova notificação não está lida ainda
+                };
+
+                console.log('[REALTIME] Adding new notification to cache for user:', user.id, 'notification ID:', mappedNotification.id);
+                
+                // Adicionar a nova notificação ao cache imediatamente (optimistic update)
+                const currentData = queryClient.getQueryData<Notification[]>(['notifications', user.id]);
+                console.log('[REALTIME] Current cache data:', currentData?.length || 0, 'notifications');
+                
+                queryClient.setQueryData<Notification[]>(['notifications', user.id], (old) => {
+                  if (!old) {
+                    console.log('[REALTIME] No existing cache, creating new array with notification');
+                    return [mappedNotification];
+                  }
+                  
+                  // Verificar se a notificação já existe (evitar duplicatas)
+                  const exists = old.some(n => n.id === mappedNotification.id);
+                  if (exists) {
+                    console.log('[REALTIME] Notification already in cache, skipping');
+                    return old;
+                  }
+                  
+                  console.log(`[REALTIME] Adding notification ${mappedNotification.id} to cache. Current count: ${old.length}, new count: ${old.length + 1}`);
+                  
+                  // Adicionar no início da lista (mais recente primeiro)
+                  const updated = [mappedNotification, ...old];
+                  console.log('[REALTIME] Updated cache with notification:', updated.length, 'notifications');
+                  
+                  // Verificar se a atualização foi aplicada
+                  setTimeout(() => {
+                    const verifyData = queryClient.getQueryData<Notification[]>(['notifications', user.id]);
+                    console.log('[REALTIME] Cache verification after update:', verifyData?.length || 0, 'notifications');
+                    const found = verifyData?.some(n => n.id === mappedNotification.id);
+                    console.log('[REALTIME] Notification found in cache after update:', found);
+                  }, 100);
+                  
+                  return updated;
+                });
+
+                // Forçar notificação de mudança para garantir que componentes reajam
+                queryClient.notifyManager.batch(() => {
+                  queryClient.invalidateQueries({ 
+                    queryKey: ['notifications', user.id],
+                    exact: true,
+                    refetchType: 'none', // Não refetch, apenas notificar mudança
+                  });
+                });
+
+                // Atualizar contador de não lidas
+                queryClient.setQueryData<number>(['notifications', 'unreadCount', user.id], (old) => {
+                  const newCount = (old || 0) + 1;
+                  console.log('[REALTIME] Updating unread count:', old, '->', newCount);
+                  return newCount;
+                });
+
+                // NÃO invalidar imediatamente - isso pode sobrescrever o optimistic update
+                // Apenas fazer refetch silencioso em background após um delay maior
+                // para garantir que a notificação foi persistida no banco
+                setTimeout(() => {
+                  console.log('Background sync: refetching notifications after delay');
+                  queryClient.refetchQueries({ 
+                    queryKey: ['notifications', user.id],
+                    exact: true 
+                  }).then(() => {
+                    console.log('Background sync completed');
+                  }).catch((err) => {
+                    console.error('Background sync error:', err);
+                  });
+                }, 2000); // Delay maior para garantir que a notificação foi persistida
               }
             }
+          }
+        )
+        .subscribe();
+
+      // Subscription para notification_reads (para atualizar quando notificações são marcadas como lidas)
+      // IMPORTANTE: Não invalidar queries quando hidden_at está sendo setado (clear all)
+      const notificationReadsChannel = supabase
+        .channel('notification-reads-changes', {
+          config: { private: true },
+        })
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notification_reads',
+          },
+          (payload) => {
+            console.log('Notification read change:', payload);
             
-            // Invalidar todas as queries de notificações (incluindo contagem de não lidas)
-            // Isso vai invalidar tanto ['notifications', userId] quanto ['notifications', 'unreadCount', userId]
-            queryClient.invalidateQueries({ queryKey: ['notifications'] });
-            queryClient.invalidateQueries({ queryKey: ['notifications', 'unreadCount'] });
-            
-            // Se o payload contém target_user_id, invalidar especificamente para esse usuário
-            if (payload.new?.target_user_id) {
-              const userId = payload.new.target_user_id;
-              queryClient.invalidateQueries({ queryKey: ['notifications', userId] });
-              queryClient.invalidateQueries({ queryKey: ['notifications', 'unreadCount', userId] });
-            }
-            // Se não tem target_user_id, é uma notificação global, invalidar para todos
-            if (!payload.new?.target_user_id && !payload.old?.target_user_id) {
-              queryClient.invalidateQueries({ queryKey: ['notifications'] });
-              queryClient.invalidateQueries({ queryKey: ['notifications', 'unreadCount'] });
+            // Invalidar queries apenas se for para o usuário atual
+            if (payload.new?.user_id && user && payload.new.user_id === user.id) {
+              // Se hidden_at está sendo setado (clear all), NÃO invalidar
+              // O optimistic update já removeu as notificações da lista
+              // Isso previne que as notificações voltem após serem limpas
+              const isClearAll = payload.new.hidden_at !== null && 
+                                payload.new.hidden_at !== undefined &&
+                                (payload.old === null || payload.old?.hidden_at === null || payload.old?.hidden_at === undefined);
+              
+              if (isClearAll) {
+                console.log('Clear all detected (hidden_at set) - skipping invalidation to prevent notifications from reappearing');
+                return;
+              }
+              
+              // Para outras operações (marcar como lida individual), invalidar normalmente
+              // Mas com um pequeno delay para evitar múltiplas invalidações em batch
+              setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+                queryClient.invalidateQueries({ queryKey: ['notifications', 'unreadCount', user.id] });
+              }, 100);
             }
           }
         )
@@ -221,6 +347,7 @@ export const useRealtime = () => {
         documentsChannel,
         inventoryChannel,
         notificationsChannel,
+        notificationReadsChannel,
         productionChannel,
         eventsChannel,
         usersChannel,

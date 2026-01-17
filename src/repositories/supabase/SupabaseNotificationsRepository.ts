@@ -16,27 +16,43 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
       throw new Error('Failed to fetch notifications');
     }
 
-    // Get read records for this user
-    const { data: reads } = await supabase
+    console.log(`[getUserNotifications] Found ${data?.length || 0} notifications for user ${userId}`);
+
+    // Get ALL read records for this user (including hidden ones to filter them out)
+    const { data: allReads } = await supabase
       .from('notification_reads')
-      .select('notification_id, read_at')
+      .select('notification_id, read_at, hidden_at')
       .eq('user_id', userId);
 
     const readMap = new Map<string, string>();
-    if (reads) {
-      reads.forEach(read => {
-        if (read.read_at) {
+    const hiddenIds = new Set<string>();
+    
+    if (allReads) {
+      console.log(`[getUserNotifications] Found ${allReads.length} read records for user ${userId}`);
+      allReads.forEach(read => {
+        if (read.hidden_at) {
+          // Notification is hidden - don't show it
+          hiddenIds.add(read.notification_id);
+        } else if (read.read_at) {
+          // Notification is read but not hidden
           readMap.set(read.notification_id, read.read_at);
         }
       });
     }
 
-    // Map notifications and add readAt from notification_reads table
-    return (data || []).map(notif => {
-      const mapped = this.mapToNotification(notif);
-      const readAt = readMap.get(notif.id);
-      return { ...mapped, readAt };
-    });
+    console.log(`[getUserNotifications] Hidden notifications: ${hiddenIds.size}`);
+
+    // Map notifications, exclude hidden ones, and add readAt from notification_reads table
+    const filtered = (data || [])
+      .filter(notif => !hiddenIds.has(notif.id)) // Filter out hidden notifications
+      .map(notif => {
+        const mapped = this.mapToNotification(notif);
+        const readAt = readMap.get(notif.id);
+        return { ...mapped, readAt };
+      });
+
+    console.log(`[getUserNotifications] Returning ${filtered.length} notifications after filtering`);
+    return filtered;
   }
 
   async getUnreadCount(userId: string): Promise<number> {
@@ -50,17 +66,27 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
       return 0;
     }
 
-    // Get read notification IDs for this user
+    // Get read notification IDs for this user (excluding hidden)
     const { data: reads } = await supabase
       .from('notification_reads')
-      .select('notification_id')
+      .select('notification_id, hidden_at')
       .eq('user_id', userId)
+      .is('hidden_at', null) // Only count non-hidden notifications
       .not('read_at', 'is', null);
 
     const readIds = new Set((reads || []).map(r => r.notification_id));
     
-    // Count unread notifications
-    return notifications.filter(n => !readIds.has(n.id)).length;
+    // Get hidden notification IDs
+    const { data: hiddenReads } = await supabase
+      .from('notification_reads')
+      .select('notification_id')
+      .eq('user_id', userId)
+      .not('hidden_at', 'is', null);
+
+    const hiddenIds = new Set((hiddenReads || []).map(r => r.notification_id));
+    
+    // Count unread notifications (excluding hidden ones)
+    return notifications.filter(n => !readIds.has(n.id) && !hiddenIds.has(n.id)).length;
   }
 
   async markAsRead(notificationId: string, userId: string): Promise<void> {
@@ -88,42 +114,27 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
     const readAt = new Date().toISOString();
     console.log('Creating/updating notification_reads record:', readAt);
     
-    // Check if read record already exists
-    const { data: existingReads } = await supabase
+    // Use upsert to handle both insert and update in one operation
+    // This ensures the record is always updated correctly
+    const { error } = await supabase
       .from('notification_reads')
-      .select('id')
-      .eq('notification_id', notificationId)
-      .eq('user_id', userId)
-      .limit(1);
-
-    if (existingReads && existingReads.length > 0) {
-      // Update existing read record
-      const { error } = await supabase
-        .from('notification_reads')
-        .update({ read_at: readAt })
-        .eq('notification_id', notificationId)
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('Error updating notification read:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        throw new Error(`Failed to mark notification as read: ${error.message || 'Unknown error'}`);
-      }
-    } else {
-      // Create new read record
-      const { error } = await supabase
-        .from('notification_reads')
-        .insert({
+      .upsert(
+        {
           notification_id: notificationId,
           user_id: userId,
           read_at: readAt,
-        });
+          hidden_at: null, // Ensure it's not hidden when marking as read
+        },
+        {
+          onConflict: 'notification_id,user_id',
+          ignoreDuplicates: false,
+        }
+      );
 
-      if (error) {
-        console.error('Error creating notification read:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        throw new Error(`Failed to mark notification as read: ${error.message || 'Unknown error'}`);
-      }
+    if (error) {
+      console.error('Error upserting notification read:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      throw new Error(`Failed to mark notification as read: ${error.message || 'Unknown error'}`);
     }
 
     console.log('Notification marked as read successfully');
@@ -173,53 +184,92 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   async clearUserNotifications(userId: string): Promise<void> {
     console.log('Clearing all notifications for user:', userId);
     
-    // Get all unread notifications for this user
-    const { data: notifications } = await supabase
-      .from('notifications')
-      .select('id')
-      .or(`target_user_id.is.null,target_user_id.eq.${userId}`);
+    // First, check if hidden_at column exists (migration may not have been run)
+    // If it doesn't exist, we'll delete all notification_reads records instead
+    try {
+      // Get ALL notifications for this user (both read and unread)
+      const { data: notifications, error: fetchError } = await supabase
+        .from('notifications')
+        .select('id')
+        .or(`target_user_id.is.null,target_user_id.eq.${userId}`);
 
-    if (!notifications || notifications.length === 0) {
-      console.log('No notifications to clear');
-      return;
+      if (fetchError) {
+        console.error('Error fetching notifications:', fetchError);
+        throw new Error(`Failed to fetch notifications: ${fetchError.message}`);
+      }
+
+      if (!notifications || notifications.length === 0) {
+        console.log('No notifications to clear');
+        return;
+      }
+
+      const hiddenAt = new Date().toISOString();
+      const readAt = new Date().toISOString();
+      const notificationIds = notifications.map(n => n.id);
+      
+      // Try to use hidden_at first (if migration was run)
+      // Process in batches to avoid potential issues with large arrays
+      const batchSize = 100;
+      for (let i = 0; i < notificationIds.length; i += batchSize) {
+        const batch = notificationIds.slice(i, i + batchSize);
+        const readsToUpsert = batch.map(notificationId => ({
+          notification_id: notificationId,
+          user_id: userId,
+          read_at: readAt,
+          hidden_at: hiddenAt,
+        }));
+
+        const { error: upsertError } = await supabase
+          .from('notification_reads')
+          .upsert(readsToUpsert, {
+            onConflict: 'notification_id,user_id',
+            ignoreDuplicates: false,
+          });
+
+        if (upsertError) {
+          // If error mentions hidden_at doesn't exist, fallback to marking all as read
+          // This way notifications stay marked as read and don't reappear
+          if (upsertError.message?.includes('hidden_at') || upsertError.message?.includes('column') || upsertError.code === '42703') {
+            console.warn('hidden_at column may not exist, falling back to mark-all-as-read method');
+            
+            // Fallback: Mark all notifications as read (without hidden_at)
+            // This prevents them from showing as unread, but they'll still appear as read
+            const readAt = new Date().toISOString();
+            const readsToUpsert = notificationIds.map(notificationId => ({
+              notification_id: notificationId,
+              user_id: userId,
+              read_at: readAt,
+              // Don't include hidden_at - column doesn't exist
+            }));
+
+            const { error: fallbackError } = await supabase
+              .from('notification_reads')
+              .upsert(readsToUpsert, {
+                onConflict: 'notification_id,user_id',
+                ignoreDuplicates: false,
+              });
+
+            if (fallbackError) {
+              console.error('Error in fallback method:', fallbackError);
+              throw new Error(`Failed to clear notifications: ${fallbackError.message || 'Unknown error'}. Please run the migration to add hidden_at column.`);
+            }
+            
+            console.log(`Marked all ${notificationIds.length} notifications as read (hidden_at column not available)`);
+            console.warn('IMPORTANT: Run migration add_hidden_at_to_notification_reads.sql to enable full clear functionality');
+            return;
+          }
+          
+          console.error('Error hiding notifications:', upsertError);
+          console.error('Error details:', JSON.stringify(upsertError, null, 2));
+          throw new Error(`Failed to clear notifications: ${upsertError.message || 'Unknown error'}`);
+        }
+      }
+
+      console.log(`Cleared (hidden) all ${notifications.length} notifications for user`);
+    } catch (error: any) {
+      console.error('Error in clearUserNotifications:', error);
+      throw error;
     }
-
-    // Get already read notification IDs
-    const { data: existingReads } = await supabase
-      .from('notification_reads')
-      .select('notification_id')
-      .eq('user_id', userId);
-
-    const readIds = new Set((existingReads || []).map(r => r.notification_id));
-    const unreadNotificationIds = notifications
-      .map(n => n.id)
-      .filter(id => !readIds.has(id));
-
-    if (unreadNotificationIds.length === 0) {
-      console.log('All notifications already read');
-      return;
-    }
-
-    const readAt = new Date().toISOString();
-    
-    // Create read records for all unread notifications
-    const readsToInsert = unreadNotificationIds.map(notificationId => ({
-      notification_id: notificationId,
-      user_id: userId,
-      read_at: readAt,
-    }));
-
-    const { error } = await supabase
-      .from('notification_reads')
-      .insert(readsToInsert);
-
-    if (error) {
-      console.error('Error clearing notifications:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
-      throw new Error(`Failed to clear notifications: ${error.message || 'Unknown error'}`);
-    }
-
-    console.log(`Cleared ${unreadNotificationIds.length} notifications`);
   }
 
   private mapToNotification(data: any): Notification {

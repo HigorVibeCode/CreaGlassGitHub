@@ -47,11 +47,14 @@
     "title": "Notifiche",
     "noNotifications": "Nessuna notifica",
     "markAsRead": "Segna come letto",
+    "markAsReadError": "Errore nel segnare la notifica come letta",
     "unread": "Non letto",
     "lowStockMessage": "Scorta bassa",
     "productionAuthorized": "Ordine di produzione autorizzato",
     "clearAll": "Cancella Tutto",
-    "clearAllConfirm": "Sei sicuro di voler cancellare tutte le notifiche?"
+    "clearAllConfirm": "Sei sicuro di voler cancellare tutte le notifiche?",
+    "clearError": "Errore nel cancellare le notifiche",
+    "loadError": "Errore nel caricare le notifiche"
   },
   "bloodPriority": {
     "title": "Blood Priority",

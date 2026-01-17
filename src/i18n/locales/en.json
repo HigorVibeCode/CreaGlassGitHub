@@ -47,11 +47,14 @@
     "title": "Notifications",
     "noNotifications": "No notifications",
     "markAsRead": "Mark as read",
+    "markAsReadError": "Failed to mark notification as read",
     "unread": "Unread",
     "lowStockMessage": "Low stock",
     "productionAuthorized": "Production order authorized",
     "clearAll": "Clear All",
-    "clearAllConfirm": "Are you sure you want to clear all notifications?"
+    "clearAllConfirm": "Are you sure you want to clear all notifications?",
+    "clearError": "Failed to clear notifications",
+    "loadError": "Failed to load notifications"
   },
   "bloodPriority": {
     "title": "Blood Priority",

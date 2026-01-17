@@ -44,11 +44,14 @@
     "title": "Notifications",
     "noNotifications": "Aucune notification",
     "markAsRead": "Marquer comme lu",
+    "markAsReadError": "Échec du marquage de la notification comme lue",
     "unread": "Non lu",
     "lowStockMessage": "Stock faible",
     "productionAuthorized": "Commande de production autorisée",
     "clearAll": "Tout Effacer",
-    "clearAllConfirm": "Êtes-vous sûr de vouloir effacer toutes les notifications?"
+    "clearAllConfirm": "Êtes-vous sûr de vouloir effacer toutes les notifications?",
+    "clearError": "Échec de l'effacement des notifications",
+    "loadError": "Échec du chargement des notifications"
   },
   "bloodPriority": {
     "title": "Blood Priority",

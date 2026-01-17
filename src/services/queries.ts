@@ -32,7 +32,9 @@ export const useNotificationsQuery = (userId?: string) => {
     queryKey: ['notifications', userId],
     queryFn: async () => {
       if (!userId) return [];
+      console.log('[QUERY] Fetching notifications for user:', userId);
       const notifications = await repos.notificationsRepo.getUserNotifications(userId);
+      console.log('[QUERY] Fetched', notifications.length, 'notifications');
       // Sort notifications by date: most recent first
       return notifications.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
@@ -41,7 +43,11 @@ export const useNotificationsQuery = (userId?: string) => {
       });
     },
     enabled: !!userId,
-    refetchInterval: 5000, // Refetch every 5 seconds as fallback
+    // Removed refetchInterval - rely on realtime subscriptions instead
+    // This prevents the "notification coming back" issue
+    staleTime: 0, // Always consider data stale to allow realtime updates
+    cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    notifyOnChangeProps: ['data', 'error'], // Notify on data changes to ensure UI updates
   });
 };
 

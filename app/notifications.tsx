@@ -17,6 +17,7 @@ export default function NotificationsScreen() {
   const colors = useThemeColors();
   const queryClient = useQueryClient();
   const { data: notifications = [], isLoading, error } = useNotificationsQuery(user?.id);
+  const clearingRef = React.useRef(false);
 
   const handleMarkAsRead = async (notificationId: string) => {
     if (!user) return;
@@ -91,13 +92,11 @@ export default function NotificationsScreen() {
           onPress: async () => {
             if (!user) return;
             
-            const now = new Date().toISOString();
+            // Set flag to prevent realtime from invalidating during clear
+            clearingRef.current = true;
             
-            // Optimistic update: mark all as read immediately
-            queryClient.setQueryData<Notification[]>(['notifications', user.id], (old) => {
-              if (!old) return old;
-              return old.map(notif => ({ ...notif, readAt: notif.readAt || now }));
-            });
+            // Optimistic update: remove all notifications from view immediately
+            queryClient.setQueryData<Notification[]>(['notifications', user.id], () => []);
 
             // Update unread count optimistically
             queryClient.setQueryData<number>(['notifications', 'unreadCount', user.id], () => 0);
@@ -107,16 +106,17 @@ export default function NotificationsScreen() {
               await repos.notificationsRepo.clearUserNotifications(user.id);
               console.log('All notifications cleared successfully');
               
-              // Refetch in background to sync with server (optimistic update already applied)
-              queryClient.refetchQueries({ 
-                queryKey: ['notifications', user.id],
-                exact: true 
-              });
-              queryClient.refetchQueries({ 
-                queryKey: ['notifications', 'unreadCount', user.id],
-                exact: true 
-              });
-            } catch (error) {
+              // Wait a bit before allowing realtime updates again
+              // This prevents notifications from reappearing immediately
+              setTimeout(() => {
+                clearingRef.current = false;
+              }, 2000);
+              
+              // Don't refetch - optimistic update is already applied
+              // The realtime subscription will handle updates if needed
+              // Refetching here causes notifications to reappear
+            } catch (error: any) {
+              clearingRef.current = false;
               console.error('Error clearing notifications:', error);
               // Revert optimistic update on error by refetching
               queryClient.refetchQueries({ 
@@ -127,7 +127,9 @@ export default function NotificationsScreen() {
                 queryKey: ['notifications', 'unreadCount', user.id],
                 exact: true 
               });
-              Alert.alert(t('common.error'), t('notifications.clearError') || 'Failed to clear notifications');
+              
+              const errorMessage = error?.message || t('notifications.clearError') || 'Failed to clear notifications';
+              Alert.alert(t('common.error'), errorMessage);
             }
           },
         },
