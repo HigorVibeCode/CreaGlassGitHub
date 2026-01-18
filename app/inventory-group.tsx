@@ -42,31 +42,7 @@ export default function InventoryGroupScreen() {
   const [itemStock, setItemStock] = useState('');
   const [itemThreshold, setItemThreshold] = useState('');
 
-  useEffect(() => {
-    if (groupId) {
-      loadGroup();
-      loadItems();
-    }
-  }, [groupId]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (groupId) {
-        loadItems();
-      }
-    }, [groupId, loadItems])
-  );
-
-  const loadGroup = async () => {
-    if (!groupId) return;
-    try {
-      const groupData = await repos.inventoryRepo.getGroupById(groupId);
-      setGroup(groupData);
-    } catch (error) {
-      console.error('Error loading group:', error);
-    }
-  };
-
+  // Declare loadItems first using useCallback
   const loadItems = useCallback(async () => {
     if (!groupId) return;
     try {
@@ -76,6 +52,32 @@ export default function InventoryGroupScreen() {
       console.error('Error loading items:', error);
     }
   }, [groupId]);
+
+  // Declare loadGroup using useCallback
+  const loadGroup = useCallback(async () => {
+    if (!groupId) return;
+    try {
+      const groupData = await repos.inventoryRepo.getGroupById(groupId);
+      setGroup(groupData);
+    } catch (error) {
+      console.error('Error loading group:', error);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    if (groupId) {
+      loadGroup();
+      loadItems();
+    }
+  }, [groupId, loadGroup, loadItems]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (groupId) {
+        loadItems();
+      }
+    }, [groupId, loadItems])
+  );
 
   const isGlassGroup = group?.name === 'Glass';
 

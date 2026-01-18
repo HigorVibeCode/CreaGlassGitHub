@@ -31,6 +31,11 @@ export default function TabLayout() {
               height: 65 + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4),
               paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4),
               paddingTop: 8,
+              ...(Platform.OS === 'web' && {
+                maxWidth: 1400,
+                width: '100%',
+                alignSelf: 'center',
+              }),
             },
             tabBarLabelStyle: {
               fontSize: 12,

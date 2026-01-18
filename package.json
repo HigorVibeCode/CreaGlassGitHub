@@ -12,6 +12,9 @@
     "build:android:preview": "npx eas build --platform android --profile preview",
     "build:android:production": "npx eas build --platform android --profile production",
     "build:android:dev": "npx eas build --platform android --profile development",
+    "build:ios:preview": "npx eas build --platform ios --profile preview",
+    "build:ios:production": "npx eas build --platform ios --profile production",
+    "build:ios:dev": "npx eas build --platform ios --profile development",
     "build:list": "npx eas build:list --platform android"
   },
   "dependencies": {

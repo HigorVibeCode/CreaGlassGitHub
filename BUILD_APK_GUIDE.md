@@ -1,6 +1,8 @@
-# 📱 Guia para Gerar APK
+# 📱 Guia para Gerar APK (Android)
 
-Este projeto usa **EAS Build** (Expo Application Services) para gerar builds de produção.
+Este projeto usa **EAS Build** (Expo Application Services) para gerar builds de produção do Android.
+
+> **💡 Para iOS:** Veja o arquivo `BUILD_IOS_GUIDE.md` para gerar builds iOS (.ipa)
 
 ## 🚀 Pré-requisitos
 

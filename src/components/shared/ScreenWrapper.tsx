@@ -1,21 +1,30 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { useThemeColors } from '../../hooks/use-theme-colors';
 
 interface ScreenWrapperProps {
   children: React.ReactNode;
   showTopBar?: boolean;
+  maxWidth?: number; // Max width in pixels for web (default: 1400)
 }
 
 export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({ 
   children, 
-  showTopBar = true 
+  showTopBar = true,
+  maxWidth = 1400,
 }) => {
   const colors = useThemeColors();
   
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.content}>
+      <View style={[
+        styles.content,
+        Platform.OS === 'web' && {
+          maxWidth: maxWidth,
+          width: '100%',
+          alignSelf: 'center',
+        },
+      ]}>
         {children}
       </View>
     </View>
@@ -25,8 +34,14 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    ...(Platform.OS === 'web' && {
+      alignItems: 'center',
+    }),
   },
   content: {
     flex: 1,
+    ...(Platform.OS === 'web' && {
+      paddingHorizontal: 24,
+    }),
   },
 });

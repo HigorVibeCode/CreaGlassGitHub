@@ -72,10 +72,18 @@ export const TopBar: React.FC<TopBarProps> = () => {
 
   return (
     <View style={[styles.container, { paddingTop: topPadding, backgroundColor: colors.background, borderBottomColor: colors.borderLight }]}>
-      <View style={styles.leftSection}>
-        <Text style={[styles.greeting, { color: colors.text }]}>{t('common.hello')}, {username}</Text>
-      </View>
-      <View style={styles.rightSection}>
+      <View style={[
+        styles.contentWrapper,
+        Platform.OS === 'web' && {
+          maxWidth: 1400,
+          width: '100%',
+          alignSelf: 'center',
+        },
+      ]}>
+        <View style={styles.leftSection}>
+          <Text style={[styles.greeting, { color: colors.text }]}>{t('common.hello')}, {username}</Text>
+        </View>
+        <View style={styles.rightSection}>
         {hasPermission('bloodPriority.view') && (
           <TouchableOpacity
             style={styles.iconContainer}
@@ -118,6 +126,7 @@ export const TopBar: React.FC<TopBarProps> = () => {
             <Ionicons name="ellipsis-vertical" size={18} color={colors.text} />
           </View>
         </TouchableOpacity>
+        </View>
       </View>
       <ThreeDotsMenu visible={showMenu} onClose={() => setShowMenu(false)} />
     </View>
@@ -126,11 +135,6 @@ export const TopBar: React.FC<TopBarProps> = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
     borderBottomWidth: 1,
     minHeight: 90,
     ...Platform.select({
@@ -143,7 +147,18 @@ const styles = StyleSheet.create({
       android: {
         elevation: 3,
       },
+      web: {
+        alignItems: 'center',
+      },
     }),
+  },
+  contentWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+    flex: 1,
   },
   leftSection: {
     flex: 1,
